@@ -31,7 +31,7 @@ namespace Lambda
 
       public Request(string key1, string key2, string key3){
         Key1 = key1;
-        Key2 = key2;
+        Key2 = key1;
         Key3 = key3;
       }
     }
