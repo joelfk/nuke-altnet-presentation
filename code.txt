@@ -1,0 +1,35 @@
+-- Parameter to pass to build process
+[Parameter] readonly string Environment;
+
+-- Run unit tests target
+Target RunUnitTests => _ => _
+    .DependsOn(Compile)
+    .Executes(() =>
+    {
+        DotNetTest(s => new DotNetTestSettings().SetProjectFile(RootDirectory / "lambda.unittests" / "Lambda.UnitTests.csproj"));
+    });
+
+-- Package lambda
+Target Package => _ => _
+    .DependsOn(RunUnitTests)
+    .Executes(() =>
+    {
+        ProcessTasks
+            .StartProcess(new ToolSettings()
+                .SetToolPath(RootDirectory / ".." / ".." / "Program Files" / "dotnet" / "dotnet.exe")
+                .SetArgumentConfigurator(args => args.Add("lambda package").Add("--configuration release").Add("--framework netcoreapp1.0").Add("--output-package bin/release/netcoreapp1.0/deploy-package.zip")))?
+            .WaitForExit();
+    });
+
+-- Run serverless deploy targer
+Target Deploy => _ => _
+    .Requires(() => Environment)
+    .DependsOn(RunUnitTests)
+    .Executes(() =>
+    {
+        ProcessTasks
+            .StartProcess(new ToolSettings()
+                .SetToolPath(RootDirectory / ".." / ".." / "Users" / "joel.kane" / "AppData" / "Roaming" / "npm" / "serverless.cmd")
+                .SetArgumentConfigurator(args => args.Add("deploy").Add($"--stage {Environment}")))?
+            .WaitForExit();
+    });
